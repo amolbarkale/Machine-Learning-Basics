@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Regression MLE Explained</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #3498db, #e74c3c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+            border-left: 5px solid #3498db;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        input[type="range"] {
+            width: 150px;
+            height: 8px;
+            border-radius: 4px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .likelihood-display {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.4em;
+            font-weight: bold;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .explanation {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #e74c3c;
+            margin: 15px 0;
+            line-height: 1.6;
+        }
+        
+        .math-formula {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin: 15px 0;
+            font-size: 1.1em;
+        }
+        
+        .step {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+        
+        .step.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .highlight {
+            background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📈 Linear Regression MLE Explained</h1>
+        
+        <div class="section">
+            <h2>🎯 What is Maximum Likelihood Estimation?</h2>
+            <div class="explanation">
+                <strong>Simple Explanation:</strong> Imagine you have some data points scattered around, and you want to draw the "best" line through them. MLE helps us find the line that makes our observed data most "likely" to have happened.
+                <br><br>
+                <strong>The Intuition:</strong> We assume our data comes from a normal distribution around the true line, and we want to find the line parameters (slope and intercept) that maximize the probability of seeing our actual data points.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🎮 Interactive Visualization</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Slope (β₁)</label>
+                    <input type="range" id="slope" min="-2" max="3" step="0.1" value="1">
+                    <span id="slopeValue">1.0</span>
+                </div>
+                <div class="control-group">
+                    <label>Intercept (β₀)</label>
+                    <input type="range" id="intercept" min="-5" max="5" step="0.1" value="0">
+                    <span id="interceptValue">0.0</span>
+                </div>
+                <div class="control-group">
+                    <label>Noise Level (σ)</label>
+                    <input type="range" id="noise" min="0.5" max="3" step="0.1" value="1">
+                    <span id="noiseValue">1.0</span>
+                </div>
+                <button onclick="generateNewData()">🎲 New Data</button>
+                <button onclick="findOptimalLine()">🔍 Find MLE Solution</button>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="regressionChart"></canvas>
+            </div>
+            
+            <div class="likelihood-display" id="likelihoodDisplay">
+                Log-Likelihood: -∞
+            </div>
+        </div>
+        
+        <div class="section step" id="step1">
+            <h2>📊 Step 1: Understanding the Model</h2>
+            <div class="explanation">
+                In linear regression, we assume our data follows this pattern:
+            </div>
+            <div class="math-formula">
+                y = β₀ + β₁x + ε, where ε ~ N(0, σ²)
+            </div>
+            <div class="explanation">
+                • <span class="highlight">y</span>: Our target variable (what we're predicting)<br>
+                • <span class="highlight">β₀</span>: Intercept (where line crosses y-axis)<br>
+                • <span class="highlight">β₁</span>: Slope (how steep the line is)<br>
+                • <span class="highlight">ε</span>: Random noise (normally distributed)
+            </div>
+        </div>
+        
+        <div class="section step" id="step2">
+            <h2>🎯 Step 2: The Likelihood Function</h2>
+            <div class="explanation">
+                For each data point, we calculate how likely it is given our line:
+            </div>
+            <div class="math-formula">
+                L(β₀, β₁, σ) = ∏ᵢ (1/√(2πσ²)) × exp(-(yᵢ - β₀ - β₁xᵢ)²/(2σ²))
+            </div>
+            <div class="explanation">
+                This looks scary, but it's just saying: <strong>"What's the probability of seeing each data point if our line is correct?"</strong>
+                <br><br>
+                We multiply all these probabilities together to get the total likelihood.
+            </div>
+        </div>
+        
+        <div class="section step" id="step3">
+            <h2>🧮 Step 3: Log-Likelihood (Easier Math!)</h2>
+            <div class="explanation">
+                Instead of multiplying probabilities, we add their logarithms:
+            </div>
+            <div class="math-formula">
+                log L = Σᵢ [-½log(2πσ²) - (yᵢ - β₀ - β₁xᵢ)²/(2σ²)]
+            </div>
+            <div class="explanation">
+                The key insight: <strong>Maximizing likelihood = Minimizing squared errors!</strong>
+                <br>
+                The part that matters for finding the best line is: <span class="highlight">-(yᵢ - β₀ - β₁xᵢ)²</span>
+            </div>
+        </div>
+        
+        <div class="section step" id="step4">
+            <h2>🔍 Step 4: Finding the Maximum</h2>
+            <div class="explanation">
+                To find the best parameters, we take derivatives and set them to zero:
+            </div>
+            <div class="math-formula">
+                β₁ = Σ(xᵢ - x̄)(yᵢ - ȳ) / Σ(xᵢ - x̄)²<br>
+                β₀ = ȳ - β₁x̄
+            </div>
+            <div class="explanation">
+                These are the famous <strong>least squares formulas</strong>! MLE for linear regression gives us the same result as minimizing squared errors.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate sample data
+        let dataPoints = [];
+        let trueSlope = 1.5;
+        let trueIntercept = 2;
+        let chart;
+        
+        function generateData() {
+            dataPoints = [];
+            const n = 20;
+            for (let i = 0; i < n; i++) {
+                const x = (Math.random() - 0.5) * 10;
+                const noise = (Math.random() - 0.5) * 4;
+                const y = trueIntercept + trueSlope * x + noise;
+                dataPoints.push({x: x, y: y});
+            }
+        }
+        
+        function calculateLogLikelihood(slope, intercept, sigma) {
+            let logLikelihood = 0;
+            for (let point of dataPoints) {
+                const predicted = intercept + slope * point.x;
+                const residual = point.y - predicted;
+                logLikelihood -= 0.5 * Math.log(2 * Math.PI * sigma * sigma);
+                logLikelihood -= (residual * residual) / (2 * sigma * sigma);
+            }
+            return logLikelihood;
+        }
+        
+        function calculateOptimalParameters() {
+            const n = dataPoints.length;
+            const sumX = dataPoints.reduce((sum, p) => sum + p.x, 0);
+            const sumY = dataPoints.reduce((sum, p) => sum + p.y, 0);
+            const sumXY = dataPoints.reduce((sum, p) => sum + p.x * p.y, 0);
+            const sumXX = dataPoints.reduce((sum, p) => sum + p.x * p.x, 0);
+            
+            const meanX = sumX / n;
+            const meanY = sumY / n;
+            
+            const optimalSlope = (sumXY - n * meanX * meanY) / (sumXX - n * meanX * meanX);
+            const optimalIntercept = meanY - optimalSlope * meanX;
+            
+            return {slope: optimalSlope, intercept: optimalIntercept};
+        }
+        
+        function updateChart() {
+            const slope = parseFloat(document.getElementById('slope').value);
+            const intercept = parseFloat(document.getElementById('intercept').value);
+            const sigma = parseFloat(document.getElementById('noise').value);
+            
+            document.getElementById('slopeValue').textContent = slope.toFixed(1);
+            document.getElementById('interceptValue').textContent = intercept.toFixed(1);
+            document.getElementById('noiseValue').textContent = sigma.toFixed(1);
+            
+            // Calculate likelihood
+            const logLikelihood = calculateLogLikelihood(slope, intercept, sigma);
+            document.getElementById('likelihoodDisplay').innerHTML = 
+                `Log-Likelihood: <strong>${logLikelihood.toFixed(2)}</strong><br>
+                <small>Higher values = better fit!</small>`;
+            
+            // Update chart
+            const linePoints = [];
+            for (let x = -6; x <= 6; x += 0.5) {
+                linePoints.push({x: x, y: intercept + slope * x});
+            }
+            
+            // Add confidence bands
+            const upperBand = [];
+            const lowerBand = [];
+            for (let x = -6; x <= 6; x += 0.5) {
+                const y = intercept + slope * x;
+                upperBand.push({x: x, y: y + 2 * sigma});
+                lowerBand.push({x: x, y: y - 2 * sigma});
+            }
+            
+            chart.data.datasets[1].data = linePoints;
+            chart.data.datasets[2].data = upperBand;
+            chart.data.datasets[3].data = lowerBand;
+            chart.update('none');
+        }
+        
+        function generateNewData() {
+            generateData();
+            chart.data.datasets[0].data = dataPoints;
+            updateChart();
+        }
+        
+        function findOptimalLine() {
+            const optimal = calculateOptimalParameters();
+            
+            // Animate to optimal values
+            animateToValue('slope', optimal.slope);
+            animateToValue('intercept', optimal.intercept);
+            
+            setTimeout(() => {
+                updateChart();
+                showSuccessMessage();
+            }, 1000);
+        }
+        
+        function animateToValue(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            const startValue = parseFloat(element.value);
+            const duration = 1000; // 1 second
+            const startTime = Date.now();
+            
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const currentValue = startValue + (targetValue - startValue) * easeInOutQuad(progress);
+                
+                element.value = currentValue;
+                updateChart();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+            
+            animate();
+        }
+        
+        function easeInOutQuad(t) {
+            return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        }
+        
+        function showSuccessMessage() {
+            const display = document.getElementById('likelihoodDisplay');
+            display.style.background = 'linear-gradient(135deg, #2ecc71, #27ae60)';
+            display.innerHTML += '<br><small>🎉 Optimal MLE solution found!</small>';
+            
+            setTimeout(() => {
+                display.style.background = 'linear-gradient(135deg, #ff6b6b, #4ecdc4)';
+            }, 2000);
+        }
+        
+        function initChart() {
+            const ctx = document.getElementById('regressionChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Data Points',
+                        data: dataPoints,
+                        backgroundColor: '#e74c3c',
+                        borderColor: '#c0392b',
+                        pointRadius: 8,
+                        pointHoverRadius: 10,
+                        borderWidth: 2
+                    }, {
+                        label: 'Regression Line',
+                        data: [],
+                        type: 'line',
+                        borderColor: '#3498db',
+                        backgroundColor: 'transparent',
+                        borderWidth: 4,
+                        pointRadius: 0,
+                        tension: 0
+                    }, {
+                        label: 'Upper Confidence',
+                        data: [],
+                        type: 'line',
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }, {
+                        label: 'Lower Confidence',
+                        data: [],
+                        type: 'line',
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: '-1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Interactive Linear Regression with MLE',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            min: -6,
+                            max: 6,
+                            title: {
+                                display: true,
+                                text: 'X Values'
+                            }
+                        },
+                        y: {
+                            min: -10,
+                            max: 15,
+                            title: {
+                                display: true,
+                                text: 'Y Values'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 300
+                    }
+                }
+            });
+        }
+        
+        function showStepsSequentially() {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    step.classList.add('visible');
+                }, index * 1000);
+            });
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            generateData();
+            initChart();
+            updateChart();
+            
+            // Add event listeners
+            document.getElementById('slope').addEventListener('input', updateChart);
+            document.getElementById('intercept').addEventListener('input', updateChart);
+            document.getElementById('noise').addEventListener('input', updateChart);
+            
+            // Show explanation steps
+            setTimeout(showStepsSequentially, 500);
+        });
+    </script>
+</body>
+</html>
