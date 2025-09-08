@@ -93,3 +93,48 @@ print("Confusion Matrix:\n", confusion_mtcx)
 roc_auc = roc_auc_score(y_test, y_pred)
 print("ROC AUC:", roc_auc)
 
+"""# Compare the Decision Tree's interpretability vs. Logistic Regression’s coefficients.
+
+=> In above case test metrics of Logisitc regression model performed slight better but ROC AUC matrix is quite similar.
+
+LOGISTIC REGRESSION =>
+
+Accuracy: 0.7359307359307359,
+Precision: 0.6172839506172839,
+Recall: 0.625,
+Confusion Matrix:
+ [[120  31]
+ [ 30  50]],
+ROC AUC: 0.7098509933774835.
+
+Decision TREE =>
+
+Accuracy: 0.7186147186147186,
+Precision: 0.5789473684210527,
+Recall: 0.6875,
+Confusion Matrix:
+ [[111  40]
+ [ 25  55]],
+ROC AUC: 0.7112996688741722
+
+# Which one would you prefer in a medical diagnosis scenario? Why?
+
+=> As per the above observation Logistic Regression is slighly outperforing over Dicision Tree BUT as per my knowledge the understanding of nodes for the given features should be hghier for Decisino Tree algorithm so, I would re-verify the input features with experiments and will take expert suggestion for what to choose in Medical Diagnosis Scenerio.
+
+## Comparison & Reflection
+## Compare Logistic Regression and Decision Tree results (accuracy, precision, recall, F1, AUC).
+
+# Discuss:
+
+# Which model performs better?
+=> In above case the Logisitic Regression model performed well but it is a small metrics difference
+
+# Which model is easier to interpret for doctors?
+=> As per my observation from above experiment, both models were easy to train and predict
+
+# If the dataset is slightly imbalanced (more 0's than 1's), which metric (Precision or Recall) should be prioritized in diagnosing diabetes? Why?
+=> If there is imbalanced data specially (more 0's than 1's) then we should prioritize Recall metrics in that case.
+
+I am not able to recollect the exact reason but the best example where we can priritize Recall value is email spam where most of the time emails will be not spammed but still we have to consider spammy emails and avoid False Positives.
+"""
+
